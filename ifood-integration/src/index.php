@@ -34,4 +34,12 @@ switch ($requestUri) {
         echo 'Not Found';
         break;
 }
+echo "</br>Welcome to the iFood Integration API!<br>";
+
+try {
+    $token = $authService->getAccessToken();
+    echo "<pre>Token recebido com sucesso:<br>" . htmlspecialchars(print_r($token, true)) . "</pre>";
+} catch (Exception $e) {
+    echo "<br><pre>Erro ao obter token: <br>" . htmlspecialchars($e->getMessage()) . "</pre>";
+}
 ?>
