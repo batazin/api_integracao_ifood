@@ -1,5 +1,5 @@
 {
-    "name": "ifood-integration",
+    "name": "ifood/integration",
     "description": "A PHP project for integrating with the iFood API.",
     "type": "project",
     "require": {
@@ -16,5 +16,25 @@
     },
     "scripts": {
         "test": "phpunit"
+    },
+    "extra": {
+        "installer-paths": {
+            "public/": [
+                "type:project"
+            ]
+        }
+    },
+    "post-install-cmd": [
+        "chown -R www-data:www-data /var/www/html",
+        "chmod -R 755 /var/www/html"
+    ],
+    "post-update-cmd": [
+        "chown -R www-data:www-data /var/www/html",
+        "chmod -R 755 /var/www/html"
+    ],
+    "build": {
+        "commands": [
+            "a2enmod rewrite"
+        ]
     }
 }

@@ -8,8 +8,13 @@ require_once __DIR__ . '/services/AuthService.php';
 require_once __DIR__ . '/controllers/OrderController.php';
 require_once __DIR__ . '/controllers/MenuController.php';
 
+use App\Services\AuthService;
+use App\Services\IfoodService;
+use App\Controllers\OrderController;
+use App\Controllers\MenuController;
+
 // Initialize services and controllers
-$authService = new AuthService();
+$authService = new AuthService($clientId, $clientSecret, $tokenUrl);
 $ifoodService = new IfoodService($authService);
 $orderController = new OrderController($ifoodService);
 $menuController = new MenuController($ifoodService);

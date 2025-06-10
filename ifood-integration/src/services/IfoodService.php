@@ -1,5 +1,5 @@
 <?php
-
+namespace App\Services;
 class IfoodService {
     private $apiUrl;
     private $authService;
@@ -21,7 +21,11 @@ class IfoodService {
         return $response;
     }
 
-    private function sendRequest($endpoint, $method, $data = [], $accessToken) {
+    public function exemplo($obrigatorio, $opcional = null) {
+        // Implementação do método aqui
+    }
+
+    private function sendRequest($endpoint, $method, $accessToken, $data = []) {
         $url = $this->apiUrl . $endpoint;
         $headers = [
             'Authorization: Bearer ' . $accessToken,
