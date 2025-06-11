@@ -1,120 +1,132 @@
 <?php
 
-namespace App\Services;
+namespace App\Services; // Certifique-se que este é o seu namespace correto
 
 class AuthService
 {
     private $clientId;
     private $clientSecret;
     private $tokenUrl;
+    // Adicione outras URLs base ou de endpoints se necessário
+    // private $userCodeUrl; 
 
-    public function __construct($clientId, $clientSecret, $tokenUrl)
+    public function __construct($clientId, $clientSecret)
     {
         $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
-        $this->tokenUrl = $tokenUrl;
+        // Defina a URL do token aqui, idealmente vinda de uma configuração
+        $this->tokenUrl = 'https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token';
+        // $this->userCodeUrl = 'URL_PARA_OBTER_USER_CODE'; // Se você tiver um fluxo de user_code
     }
-    public function getAccessToken()
-    {
-        error_log("AuthService::getAccessToken() - Method started.");
 
-        // 1. Descomente a inicialização do cURL
-        error_log("AuthService::getAccessToken() - Initializing cURL.");
+    /**
+     * Obtém um token de acesso usando o fluxo client_credentials.
+     *
+     * @return array Os dados do token (incluindo accessToken, expiresIn, etc.)
+     * @throws \Exception Se ocorrer um erro durante a obtenção do token.
+     */
+    public function getAccessToken(): array
+    {
+        error_log("AuthService::getAccessToken() - Solicitando token via client_credentials.");
+
         $ch = curl_init();
         if ($ch === false) {
-            error_log("AuthService::getAccessToken() - curl_init() failed!");
-            throw new \Exception("Failed to initialize cURL session.");
+            error_log("AuthService::getAccessToken() - Falha ao inicializar cURL (curl_init).");
+            throw new \Exception("Falha ao inicializar a sessão cURL.");
         }
-        error_log("AuthService::getAccessToken() - cURL initialized.");
-        // Mantenha o resto comentado e retorne o array fixo por enquanto
-        return ['test' => 'curl_init_ok'];
 
-        // 2. Descomente as opções cURL uma por uma ou em pequenos grupos
-        error_log("AuthService::getAccessToken() - Setting cURL options.");
-        curl_setopt($ch, CURLOPT_URL, $this->tokenUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: application/json', // Verifique se este header é necessário/correto para client_credentials
-            'Content-Type: application/x-www-form-urlencoded'
+        $postData = [
+            'grantType' => 'client_credentials',
+            'clientId' => $this->clientId,
+            'clientSecret' => $this->clientSecret
+        ];
+        $queryString = http_build_query($postData);
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $this->tokenUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $queryString,
+            CURLOPT_ENCODING => "", // Para decodificar Gzip automaticamente
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/x-www-form-urlencoded'
+            ]
         ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'grant_type' => 'client_credentials', // Certifique-se que isso está aqui para o fluxo client_credentials
-            'client_id' => $this->clientId,
-            'client_secret' => $this->clientSecret
-        ]));
-        error_log("AuthService::getAccessToken() - cURL options set.");
 
-        // 3. Descomente a execução do cURL
-        error_log("AuthService::getAccessToken() - Executing cURL.");
+        error_log("AuthService::getAccessToken() - Executando cURL para: " . $this->tokenUrl);
         $response = curl_exec($ch);
-        error_log("AuthService::getAccessToken() - cURL executed. Raw response: " . $response);
+        $curlErrno = curl_errno($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch); // Fechar o handle cURL o mais rápido possível
 
-        // 4. Descomente o tratamento de erro cURL
-        if (curl_errno($ch)) {
-            $curlError = curl_error($ch);
-            error_log("AuthService::getAccessToken() - cURL error: " . $curlError);
-            curl_close($ch);
-            throw new \Exception('cURL Error: ' . $curlError);
+        if ($curlErrno) {
+            error_log("AuthService::getAccessToken() - Erro cURL (#" . $curlErrno . "): " . $curlError . ". Resposta: " . $response);
+            throw new \Exception('Erro na comunicação cURL: ' . $curlError);
         }
-        error_log("AuthService::getAccessToken() - No cURL errors.");
 
-        // 5. Descomente o fechamento do cURL
-        curl_close($ch);
-        error_log("AuthService::getAccessToken() - cURL closed.");
-
-        // 6. Descomente o json_decode e seu tratamento de erro
-        error_log("AuthService::getAccessToken() - Decoding JSON response.");
+        error_log("AuthService::getAccessToken() - Resposta bruta da API: " . $response);
         $data = json_decode($response, true);
+
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("AuthService::getAccessToken() - JSON decode error: " . json_last_error_msg() . ". Response was: " . $response);
-            throw new \Exception('Failed to decode JSON response: ' . $response);
+            error_log("AuthService::getAccessToken() - Erro ao decodificar JSON: " . json_last_error_msg() . ". Resposta: " . $response);
+            throw new \Exception('Falha ao decodificar a resposta JSON. Resposta bruta: ' . $response);
         }
-        error_log("AuthService::getAccessToken() - JSON decoded successfully.");
 
-        // 7. Descomente o tratamento de erro da API iFood
         if (isset($data['error'])) {
-            $errorDetails = $data['error_description'] ?? $data['error'] ?? 'Unknown API error';
-            $errorMessage = 'API Error: ' . (is_array($errorDetails) ? json_encode($errorDetails) : (string)$errorDetails);
-            error_log("AuthService::getAccessToken() - API error detected: " . $errorMessage);
-            throw new \Exception($errorMessage);
+            $apiErrorMessage = $data['error_description'] ?? $data['message'] ?? (is_array($data['error']) ? json_encode($data['error']) : (string)$data['error']);
+            error_log("AuthService::getAccessToken() - Erro da API iFood: " . $apiErrorMessage . ". Resposta completa: " . $response);
+            throw new \Exception('Erro da API iFood: ' . $apiErrorMessage . ". Resposta bruta: " . $response);
         }
-        error_log("AuthService::getAccessToken() - No API errors in response.");
 
-        // 8. Descomente a verificação do access_token e o retorno
-        if (isset($data['access_token'])) {
-            error_log("AuthService::getAccessToken() - Access token found. Returning data.");
+        if (isset($data['accessToken'])) {
+            error_log("AuthService::getAccessToken() - Token de acesso obtido com sucesso.");
             return $data;
         }
 
-        error_log("AuthService::getAccessToken() - Access token NOT found in response. Response: " . $response);
-        throw new \Exception('Unable to obtain access token: ' . $response);
+        error_log("AuthService::getAccessToken() - 'accessToken' não encontrado na resposta. Resposta: " . $response);
+        throw new \Exception('Não foi possível obter o token de acesso. Resposta bruta: ' . $response);
     }
 
-    public function getUserCode()
+    /**
+     * Exemplo de estrutura para um método que lida com o fluxo de user_code.
+     * A implementação real dependerá dos detalhes específicos da API do iFood para este fluxo.
+     */
+    public function getUserCode(): array
     {
-        $ch = curl_init();
+        error_log("AuthService::getUserCode() - Iniciando fluxo para obter user_code.");
+        // Esta é uma implementação de espaço reservado.
+        // Você precisaria:
+        // 1. Definir a URL correta para solicitar o user_code.
+        // 2. Montar os dados corretos para a requisição POST (ex: clientId, scopes).
+        // 3. Fazer a chamada cURL.
+        // 4. Tratar a resposta e os erros de forma similar ao getAccessToken.
+        // 5. Retornar os dados como userCode, verificationUrl, etc.
 
-        curl_setopt($ch, CURLOPT_URL, $this->tokenUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: application/json',
-            'Content-Type: application/x-www-form-urlencoded'
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'clientId' => $this->clientId
-        ]));
+        // Exemplo:
+        // $userCodeUrl = $this->userCodeUrl; // Definido no construtor ou como constante
+        // $postData = ['clientId' => $this->clientId, /* outros parâmetros como 'scope' */ ];
+        // ... lógica cURL similar a getAccessToken ...
+        // $data = json_decode($response, true);
+        // if (isset($data['userCode'])) {
+        //     return $data;
+        // }
 
-        $response = curl_exec($ch);
-        curl_close($ch);
+        // Por enquanto, lança uma exceção indicando que não está implementado.
+        throw new \Exception("AuthService::getUserCode() - Método não completamente implementado.");
 
-        $data = json_decode($response, true);
-
-        if (isset($data['userCode'])) {
-            return $data['userCode'];
-        }
-
-        throw new \Exception('Unable to obtain user code: ' . $response);
+        // Se fosse retornar a estrutura que você mencionou anteriormente:
+        /*
+        return [
+            "userCode" => "HJLX-LPSQ",
+            "authorizationCodeVerifier" => "g58p...",
+            "verificationUrl" => "https://portal.ifood.com.br/apps/code",
+            "verificationUrlComplete" => "https://portal.ifood.com.br/apps/code?c=HJLX-LPSQ",
+            "expiresIn" => 600
+        ];
+        */
     }
+
+    // Você pode adicionar outros métodos aqui para outros fluxos de autenticação
+    // ou para trocar o authorization_code por um token, por exemplo.
 }

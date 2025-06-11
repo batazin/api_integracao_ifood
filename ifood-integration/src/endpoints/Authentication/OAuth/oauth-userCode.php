@@ -5,36 +5,24 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Função para capturar erros fatais
+// Função para capturar erros fatais (mantenha por segurança)
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR, E_PARSE])) {
-        // Logue o erro fatal
         error_log("oauth-userCode.php: FATAL ERROR DETECTED BY SHUTDOWN FUNCTION: " . print_r($error, true));
-        // Tente enviar uma resposta JSON de erro se os headers não foram enviados
         if (!headers_sent()) {
             header('Content-Type: application/json');
             http_response_code(500);
         }
-        // Mesmo que headers tenham sido enviados, tente ecoar algo para o log ou para debug
-        echo json_encode([
-            'success' => false,
-            'fatal_error' => [
-                'type' => $error['type'],
-                'message' => $error['message'],
-                'file' => $error['file'],
-                'line' => $error['line'],
-            ]
-        ]);
+        echo json_encode(['success' => false, 'fatal_error' => ['type' => $error['type'], 'message' => $error['message'], 'file' => $error['file'], 'line' => $error['line']]]);
     }
 });
 
-error_log("oauth-userCode.php: Script started (after shutdown function registration).");
-
-header('Content-Type: application/json'); // Mantenha aqui
+error_log("oauth-userCode.php: Script started.");
+header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../services/AuthService.php';
-use App\Services\AuthService;
+use App\Services\AuthService; // Certifique-se que o namespace está correto
 
 try {
     error_log("oauth-userCode.php: Inside try block, before AuthService instantiation.");
@@ -44,21 +32,28 @@ try {
         'https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token'
     );
     error_log("oauth-userCode.php: AuthService instantiated. Calling getAccessToken...");
-    $tokenData = $authService->getAccessToken();
-    error_log("oauth-userCode.php: getAccessToken returned. Preparing success JSON.");
+    $tokenData = $authService->getAccessToken(); // Esta é a chamada importante
+    error_log("oauth-userCode.php: getAccessToken returned. Data: " . print_r($tokenData, true)); // LOG O QUE FOI RETORNADO
+
+    // Verifique se $tokenData não está vazio antes de tentar codificar
+    if (empty($tokenData)) {
+        error_log("oauth-userCode.php: WARNING - getAccessToken returned empty data. Sending empty success response.");
+        // Decida o que fazer aqui - talvez um erro?
+        // Por agora, vamos manter o fluxo para ver se o json_encode funciona
+    }
 
     echo json_encode([
         'success' => true,
-        'tokenData' => $tokenData
+        'tokenData' => $tokenData // Aqui está o echo principal
     ]);
     error_log("oauth-userCode.php: Success JSON sent.");
 
 } catch (Exception $e) {
     error_log("oauth-userCode.php: EXCEPTION CAUGHT: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
-    if (!headers_sent()) {
+    if (!headers_sent()) { // Boa prática, mas Content-Type já foi setado
         http_response_code(500);
     }
     echo json_encode(['success' => false, 'error' => 'An exception occurred: ' . $e->getMessage()]);
-    error_log("oauth-userCode.php: Error JSON sent.");
+    error_log("oauth-userCode.php: Error JSON sent due to exception.");
 }
 error_log("oauth-userCode.php: Script finished.");
