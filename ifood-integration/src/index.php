@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // This is the entry point of the application.
 // Initialize the application and handle incoming requests.
 
@@ -37,9 +41,9 @@ switch ($requestUri) {
 echo "</br>Welcome to the iFood Integration API!<br>";
 
 try {
-    $token = $authService->getAccessToken();
-    echo "<pre>Token recebido com sucesso:<br>" . htmlspecialchars(print_r($token, true)) . "</pre>";
+    $tokenData = $authService->getAccessToken(); // Chame o método que usa client_credentials
+    echo "<pre>Access Token Data:<br>" . htmlspecialchars(print_r($tokenData, true)) . "</pre>";
 } catch (Exception $e) {
-    echo "<br><pre>Erro ao obter token: <br>" . htmlspecialchars($e->getMessage()) . "</pre>";
+    echo "<br><pre>Erro ao obter access token: <br>" . htmlspecialchars($e->getMessage()) . "</pre>";
 }
 ?>

@@ -47,6 +47,7 @@ COPY ifood-integration/. /var/www/html/
 COPY ifood-integration/src/config/ /var/www/html/config/
 COPY ifood-integration/src/controllers/ /var/www/html/controllers/
 COPY ifood-integration/src/index.php /var/www/html/index.php
+COPY ifood-integration/src/endpoints/ /var/www/html/src/endpoints/
 COPY ifood-integration/src/services/ /var/www/html/services/
 COPY ifood-integration/src/services/AuthService.php /var/www/html/services/AuthService.php
 RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
