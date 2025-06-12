@@ -1,0 +1,96 @@
+<?php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Actions\orders-id-requestCancellation.php
+
+// Carrega as credenciais do arquivo de configuração
+$config = require __DIR__ . '/../../../config/config.php';
+$clientId = $config['client_id'];
+$clientSecret = $config['client_secret'];
+
+// Função para obter o access token
+function getAccessToken($clientId, $clientSecret) {
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => 'https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'grantType' => 'client_credentials',
+            'clientId' => $clientId,
+            'clientSecret' => $clientSecret
+        ]),
+        CURLOPT_HTTPHEADER => [
+            "Accept: application/json",
+            "Content-Type: application/x-www-form-urlencoded"
+        ]
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    $data = json_decode($response, true);
+    return $data['accessToken'] ?? null;
+}
+
+// Recebe o id do pedido via query string (?id=...) e o motivo via POST JSON
+$orderId = $_GET['id'] ?? null;
+
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
+    exit;
+}
+
+if (!$orderId) {
+    http_response_code(400);
+    echo json_encode(['error' => 'id do pedido não informado']);
+    exit;
+}
+
+// Recebe o corpo JSON da requisição POST
+$input = json_decode(file_get_contents('php://input'), true);
+
+if (!$input || !isset($input['cancellationCode'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Corpo da requisição inválido. Envie {"cancellationCode": "501", "reason": "motivo opcional"}']);
+    exit;
+}
+
+$body = [
+    "cancellationCode" => $input['cancellationCode']
+];
+if (isset($input['reason'])) {
+    $body["reason"] = $input['reason'];
+}
+
+$accessToken = getAccessToken($clientId, $clientSecret);
+
+$ch = curl_init();
+curl_setopt_array($ch, [
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/requestCancellation",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode($body),
+    CURLOPT_HTTPHEADER => [
+        "Authorization: Bearer $accessToken",
+        "Accept: application/json",
+        "Content-Type: application/json"
+    ]
+]);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode([
+        'success' => true,
+        'message' => 'Solicitação de cancelamento enviada com sucesso!',
+        'orderId' => $orderId
+    ]);
+} else {
+    http_response_code($httpCode !== 200 ? $httpCode : 500);
+    echo json_encode([
+        'error' => 'Não foi possível solicitar o cancelamento do pedido',
+        'orderId' => $orderId,
+        'detalhe' => $response
+    ]);
+}
