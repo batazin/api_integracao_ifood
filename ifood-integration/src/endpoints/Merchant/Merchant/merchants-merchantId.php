@@ -1,11 +1,12 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Merchant\Merchant\merchants.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Merchant\Merchant\merchants-merchantId.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
 $clientId = $config['client_id'];
 $clientSecret = $config['client_secret'];
 
+// Função para obter o access token
 function getAccessToken($clientId, $clientSecret) {
     $ch = curl_init();
     curl_setopt_array($ch, [
@@ -28,11 +29,20 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
+// Recebe o merchantId via query string (?merchantId=...)
+$merchantId = $_GET['merchantId'] ?? null;
+
+if (!$merchantId) {
+    http_response_code(400);
+    echo json_encode(['error' => 'merchantId não informado']);
+    exit;
+}
+
 $accessToken = getAccessToken($clientId, $clientSecret);
 
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => 'https://merchant-api.ifood.com.br/merchant/v1.0/merchants',
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/merchant/v1.0/merchants/$merchantId",
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
