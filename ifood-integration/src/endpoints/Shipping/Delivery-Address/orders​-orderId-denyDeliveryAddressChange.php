@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery-Availabilities\orders-orderId-deliveryAvailabilities.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery-Address\orders-orderId-denyDeliveryAddressChange.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -10,7 +10,7 @@ $clientSecret = $config['client_secret'];
 function getAccessToken($clientId, $clientSecret) {
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => 'https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token',
+        CURLOPT_URL => 'https://merchant-api.ifood.com.br/shipping/v1.0',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query([
@@ -29,33 +29,32 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
-// Recebe o orderId, latitude e longitude via query string
+// Recebe o orderId via query string (?orderId=...)
 $orderId = $_GET['orderId'] ?? null;
-$latitude = $_GET['latitude'] ?? null;
-$longitude = $_GET['longitude'] ?? null;
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Método não permitido, use GET']);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
     exit;
 }
 
-if (!$orderId || !$latitude || !$longitude) {
+if (!$orderId) {
     http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros obrigatórios: orderId, latitude e longitude']);
+    echo json_encode(['error' => 'orderId não informado']);
     exit;
 }
 
 $accessToken = getAccessToken($clientId, $clientSecret);
 
-$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/deliveryAvailabilities?latitude=$latitude&longitude=$longitude";
+$url = "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/denyDeliveryAddressChange";
 
 $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
         "Accept: application/json"
@@ -65,12 +64,16 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200 && $response) {
-    echo $response;
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode([
+        'success' => true,
+        'message' => 'Alteração de endereço de entrega negada com sucesso!',
+        'orderId' => $orderId
+    ]);
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter as disponibilidades de entrega',
+        'error' => 'Não foi possível negar a alteração de endereço de entrega',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);

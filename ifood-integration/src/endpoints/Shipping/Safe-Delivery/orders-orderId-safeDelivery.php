@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery-Availabilities\orders-orderId-deliveryAvailabilities.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Safe-Delivery\orders-orderId-safeDelivery.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -29,10 +29,8 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
-// Recebe o orderId, latitude e longitude via query string
+// Recebe o orderId via query string (?orderId=...)
 $orderId = $_GET['orderId'] ?? null;
-$latitude = $_GET['latitude'] ?? null;
-$longitude = $_GET['longitude'] ?? null;
 
 header('Content-Type: application/json');
 
@@ -42,15 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-if (!$orderId || !$latitude || !$longitude) {
+if (!$orderId) {
     http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros obrigatórios: orderId, latitude e longitude']);
+    echo json_encode(['error' => 'orderId não informado']);
     exit;
 }
 
 $accessToken = getAccessToken($clientId, $clientSecret);
 
-$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/deliveryAvailabilities?latitude=$latitude&longitude=$longitude";
+$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/safeDelivery";
 
 $ch = curl_init();
 curl_setopt_array($ch, [
@@ -65,12 +63,20 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200 && $response) {
-    echo $response;
+if ($httpCode === 200) {
+    if ($response && $response !== 'null') {
+        echo $response;
+    } else {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Nenhuma informação de entrega segura disponível para este pedido.',
+            'orderId' => $orderId
+        ]);
+    }
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter as disponibilidades de entrega',
+        'error' => 'Não foi possível consultar o fluxo de entrega segura',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);

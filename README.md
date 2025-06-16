@@ -14,6 +14,19 @@ This project provides a PHP integration with the iFood API, allowing for order m
 /orders/{id}/verifyDeliveryCode
 ​/orders​/{id}​/assignDriver
 /orders/{id}/verifyDeliveryCode
+/merchants/{merchantId}/deliveryAvailabilities
+​/orders​/{orderId}​/deliveryAvailabilities
+/merchants/{merchantId}/orders
+/orders/{orderId}/requestDriver
+/orders/{orderId}/acceptDeliveryAddressChange
+/orders/{orderId}/deliveryAddressChangeRequest
+​/orders​/{orderId}​/denyDeliveryAddressChange
+/orders/{orderId}/userConfirmAddress
+​/orders​/{orderId}​/cancellationReasons
+/orders/{orderId}/cancel
+/orders/{orderId}/cancelRequestDriver
+/orders/{id}/tracking
+
 
 ## Project Structure
 

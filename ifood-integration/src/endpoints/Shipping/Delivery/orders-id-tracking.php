@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery-Availabilities\orders-orderId-deliveryAvailabilities.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery\orders-id-tracking.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -29,10 +29,8 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
-// Recebe o orderId, latitude e longitude via query string
-$orderId = $_GET['orderId'] ?? null;
-$latitude = $_GET['latitude'] ?? null;
-$longitude = $_GET['longitude'] ?? null;
+// Recebe o id do pedido via query string (?id=...)
+$orderId = $_GET['id'] ?? null;
 
 header('Content-Type: application/json');
 
@@ -42,15 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-if (!$orderId || !$latitude || !$longitude) {
+if (!$orderId) {
     http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros obrigatórios: orderId, latitude e longitude']);
+    echo json_encode(['error' => 'id do pedido não informado']);
     exit;
 }
 
 $accessToken = getAccessToken($clientId, $clientSecret);
 
-$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/deliveryAvailabilities?latitude=$latitude&longitude=$longitude";
+$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/tracking";
 
 $ch = curl_init();
 curl_setopt_array($ch, [
@@ -70,7 +68,7 @@ if ($httpCode === 200 && $response) {
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter as disponibilidades de entrega',
+        'error' => 'Não foi possível obter o rastreamento do pedido',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);

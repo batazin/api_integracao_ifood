@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Delivery-Availabilities\orders-orderId-deliveryAvailabilities.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Shipping\Request-Driver\merchants-merchantId-orders.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -29,36 +29,40 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
-// Recebe o orderId, latitude e longitude via query string
-$orderId = $_GET['orderId'] ?? null;
-$latitude = $_GET['latitude'] ?? null;
-$longitude = $_GET['longitude'] ?? null;
+// Recebe o merchantId via query string (?merchantId=...)
+$merchantId = $_GET['merchantId'] ?? null;
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Método não permitido, use GET']);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
     exit;
 }
 
-if (!$orderId || !$latitude || !$longitude) {
+if (!$merchantId) {
     http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros obrigatórios: orderId, latitude e longitude']);
+    echo json_encode(['error' => 'merchantId não informado']);
     exit;
 }
+
+// Recebe o corpo JSON da requisição POST (filtros opcionais)
+$input = json_decode(file_get_contents('php://input'), true);
 
 $accessToken = getAccessToken($clientId, $clientSecret);
 
-$url = "https://merchant-api.ifood.com.br/shipping/v1.0/orders/$orderId/deliveryAvailabilities?latitude=$latitude&longitude=$longitude";
+$url = "https://merchant-api.ifood.com.br/shipping/v1.0/merchants/$merchantId/orders";
 
 $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => $input ? json_encode($input) : '{}',
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
-        "Accept: application/json"
+        "Accept: application/json",
+        "Content-Type: application/json"
     ]
 ]);
 $response = curl_exec($ch);
@@ -70,8 +74,8 @@ if ($httpCode === 200 && $response) {
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter as disponibilidades de entrega',
-        'orderId' => $orderId,
+        'error' => 'Não foi possível obter os pedidos do merchant',
+        'merchantId' => $merchantId,
         'detalhe' => $response
     ]);
 }
