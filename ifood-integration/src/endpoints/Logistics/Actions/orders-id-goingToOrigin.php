@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Delivery\orders-id-tracking.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Logistics\Actions\orders-id-goingToOrigin.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -34,6 +34,12 @@ $orderId = $_GET['id'] ?? null;
 
 header('Content-Type: application/json');
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
+    exit;
+}
+
 if (!$orderId) {
     http_response_code(400);
     echo json_encode(['error' => 'id do pedido não informado']);
@@ -44,8 +50,9 @@ $accessToken = getAccessToken($clientId, $clientSecret);
 
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/tracking",
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/logistics/v1.0/orders/$orderId/goingToOrigin",
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
         "Accept: application/json"
@@ -55,12 +62,16 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200 && $response) {
-    echo $response;
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode([
+        'success' => true,
+        'message' => 'Status atualizado: entregador a caminho do estabelecimento!',
+        'orderId' => $orderId
+    ]);
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter o rastreamento do pedido',
+        'error' => 'Não foi possível atualizar o status para a caminho do estabelecimento',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);

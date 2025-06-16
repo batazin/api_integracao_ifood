@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Delivery\orders-id-tracking.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Handshake-Platform\disputes-disputeId-reject.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -29,14 +29,20 @@ function getAccessToken($clientId, $clientSecret) {
     return $data['accessToken'] ?? null;
 }
 
-// Recebe o id do pedido via query string (?id=...)
-$orderId = $_GET['id'] ?? null;
+// Recebe o disputeId via query string (?disputeId=...)
+$disputeId = $_GET['disputeId'] ?? null;
 
 header('Content-Type: application/json');
 
-if (!$orderId) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
+    exit;
+}
+
+if (!$disputeId) {
     http_response_code(400);
-    echo json_encode(['error' => 'id do pedido não informado']);
+    echo json_encode(['error' => 'disputeId não informado']);
     exit;
 }
 
@@ -44,8 +50,9 @@ $accessToken = getAccessToken($clientId, $clientSecret);
 
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/tracking",
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/disputes/$disputeId/reject",
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
         "Accept: application/json"
@@ -55,13 +62,17 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200 && $response) {
-    echo $response;
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode([
+        'success' => true,
+        'message' => 'Disputa rejeitada com sucesso!',
+        'disputeId' => $disputeId
+    ]);
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter o rastreamento do pedido',
-        'orderId' => $orderId,
+        'error' => 'Não foi possível rejeitar a disputa',
+        'disputeId' => $disputeId,
         'detalhe' => $response
     ]);
 }

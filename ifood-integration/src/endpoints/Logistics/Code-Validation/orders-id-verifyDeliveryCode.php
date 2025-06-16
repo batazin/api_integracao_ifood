@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Delivery\orders-id-tracking.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Logistics\Code-Validation\orders-id-verifyDeliveryCode.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -34,9 +34,24 @@ $orderId = $_GET['id'] ?? null;
 
 header('Content-Type: application/json');
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método não permitido, use POST']);
+    exit;
+}
+
 if (!$orderId) {
     http_response_code(400);
     echo json_encode(['error' => 'id do pedido não informado']);
+    exit;
+}
+
+// Recebe o corpo JSON da requisição POST
+$input = json_decode(file_get_contents('php://input'), true);
+
+if (!$input || !isset($input['deliveryCode'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Corpo da requisição inválido. Envie {"deliveryCode": "CÓDIGO"}']);
     exit;
 }
 
@@ -44,23 +59,32 @@ $accessToken = getAccessToken($clientId, $clientSecret);
 
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/tracking",
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/logistics/v1.0/orders/$orderId/verifyDeliveryCode",
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode([
+        "deliveryCode" => $input['deliveryCode']
+    ]),
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
-        "Accept: application/json"
+        "Accept: application/json",
+        "Content-Type: application/json"
     ]
 ]);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200 && $response) {
-    echo $response;
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo $response ?: json_encode([
+        'success' => true,
+        'message' => 'Código de entrega validado com sucesso!',
+        'orderId' => $orderId
+    ]);
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter o rastreamento do pedido',
+        'error' => 'Não foi possível validar o código de entrega',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);

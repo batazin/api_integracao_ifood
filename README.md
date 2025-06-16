@@ -2,6 +2,19 @@
 
 This project provides a PHP integration with the iFood API, allowing for order management and menu retrieval.
 
+## Endpoint analistic
+
+​/orders​/{id}​/virtual-bag
+/orders/{id}/tracking
+/orders/{id}/requestDriver
+/orders/{id}/cancelRequestDriver
+/disputes/{disputeId}/accept
+/disputes/{disputeId}/reject
+/orders/{id}/validatePickupCode
+/orders/{id}/verifyDeliveryCode
+​/orders​/{id}​/assignDriver
+/orders/{id}/verifyDeliveryCode
+
 ## Project Structure
 
 ```

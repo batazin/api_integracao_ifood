@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Order\Delivery\orders-id-tracking.php
+// filepath: c:\WF\api_integracao_ifood\ifood-integration\src\endpoints\Logistics\Details\orders-id.php
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
@@ -44,7 +44,7 @@ $accessToken = getAccessToken($clientId, $clientSecret);
 
 $ch = curl_init();
 curl_setopt_array($ch, [
-    CURLOPT_URL => "https://merchant-api.ifood.com.br/order/v1.0/orders/$orderId/tracking",
+    CURLOPT_URL => "https://merchant-api.ifood.com.br/logistics/v1.0/orders/$orderId",
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer $accessToken",
@@ -60,7 +60,7 @@ if ($httpCode === 200 && $response) {
 } else {
     http_response_code($httpCode !== 200 ? $httpCode : 500);
     echo json_encode([
-        'error' => 'Não foi possível obter o rastreamento do pedido',
+        'error' => 'Não foi possível obter os detalhes logísticos do pedido',
         'orderId' => $orderId,
         'detalhe' => $response
     ]);
