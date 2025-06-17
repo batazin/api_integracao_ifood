@@ -26,6 +26,10 @@ This project provides a PHP integration with the iFood API, allowing for order m
 /orders/{orderId}/cancel
 /orders/{orderId}/cancelRequestDriver
 /orders/{id}/tracking
+/merchants/{merchantId}/catalogs/{groupId}/sellableItems
+/merchants/{merchantId}/catalogs/{catalogId}/categories - post
+/merchants/{merchantId}/products - get
+
 
 
 ## Project Structure
