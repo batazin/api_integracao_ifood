@@ -29,7 +29,21 @@ This project provides a PHP integration with the iFood API, allowing for order m
 /merchants/{merchantId}/catalogs/{groupId}/sellableItems
 /merchants/{merchantId}/catalogs/{catalogId}/categories - post
 /merchants/{merchantId}/products - get
-
+/merchants/{merchantId}/items/{itemId}/flat
+/merchants/{merchantId}/items - put
+/merchants/{merchantId}/items/price - patch
+/merchants/{merchantId}/items/status
+/merchants/{merchantId}/optionGroups/{optionGroupId}/products/{productId}
+/merchants/{merchantId}/optionGroups/{optionGroupId}/status
+/merchants/{merchantId}/optionGroups/{optionGroupId}/products/{productId}/option
+/merchants/{merchantId}/options/price
+/merchants/{merchantId}/options/externalCode
+/merchants/{merchantId}/options/status
+/merchants/{merchantId}/inventory
+/merchants/{merchantId}/inventory/{productId}
+/merchants/{merchantId}/inventory/batchDelete
+/merchants/{merchantId}/image/upload
+/merchants/{merchantId}/reviews
 
 
 ## Project Structure
