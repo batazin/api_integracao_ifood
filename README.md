@@ -44,6 +44,19 @@ This project provides a PHP integration with the iFood API, allowing for order m
 /merchants/{merchantId}/inventory/batchDelete
 /merchants/{merchantId}/image/upload
 /merchants/{merchantId}/reviews
+/merchants/{merchantId}/reviews/{reviewId}
+/merchants/{merchantId}/reviews/{reviewId}/answers
+/merchants/{merchantId}/reviews
+/orders/{id}/items/{uniqueId}/replace
+​/orders​/{id}​/items​/{uniqueId} - patch
+​/orders​/{id}​/items​/{uniqueId} - delete
+/orders/{id}/startSeparation
+/orders/{id}/endSeparation
+/merchants/{merchantId}/promotions
+/merchants/{merchantId}/promotions/{aggregationId}/items
+​/ingestion​/{merchantId}?reset={resetCatalog}
+/ingestion/{merchantId}
+
 
 
 ## Project Structure
