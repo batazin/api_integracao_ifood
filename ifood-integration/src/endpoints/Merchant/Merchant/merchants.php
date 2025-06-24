@@ -3,8 +3,19 @@
 
 // Carrega as credenciais do arquivo de configuração
 $config = require __DIR__ . '/../../../config/config.php';
-$clientId = $config['client_id'];
-$clientSecret = $config['client_secret'];
+
+$cnpj = $_GET['cnpj'] ?? null;
+
+if (!$cnpj || !isset($config['cnpjs'][$cnpj])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'CNPJ não informado ou não cadastrado']);
+    exit;
+}
+
+$clientId = $config['cnpjs'][$cnpj]['client_id'];
+$clientSecret = $config['cnpjs'][$cnpj]['client_secret'];
+$clientId = $config['cnpjs'][$cnpj]['client_id'];
+$clientSecret = $config['cnpjs'][$cnpj]['client_secret'];
 
 function getAccessToken($clientId, $clientSecret) {
     $ch = curl_init();
